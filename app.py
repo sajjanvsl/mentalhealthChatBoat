@@ -6,11 +6,11 @@ import time
 import random
 import base64
 
-# Download VADER lexicon
+# ---------- Setup ----------
 nltk.download('vader_lexicon', quiet=True)
 sia = SentimentIntensityAnalyzer()
 
-# ---------- Daily affirmations list ----------
+# ---------- Data ----------
 AFFIRMATIONS = [
     "You are enough, just as you are.",
     "This feeling will pass. You've survived 100% of your bad days.",
@@ -22,27 +22,37 @@ AFFIRMATIONS = [
     "Breathe. You've got this."
 ]
 
-# ---------- College header ----------
-st.set_page_config(page_title="MindMate", layout="wide")
-st.markdown("""
-<div style="text-align:center; background:#f0f2f6; padding:1rem; border-radius:10px; margin-bottom:1rem;">
-    <h4>🏛️ Dept. of Computer Science and Application</h4>
-    <p>Govt. First Grade College for Women, Jamkhandi</p>
-</div>
-""", unsafe_allow_html=True)
+RECOVERY_VIDEOS = [
+    ("🧘 Guided Meditation for Anxiety", "https://www.youtube.com/watch?v=ZToicYcHIOU"),
+    ("💪 Overcoming Depression – Practical Tips", "https://www.youtube.com/watch?v=3BQN8K3E5oE"),
+    ("🧠 How to Practice Self-Care", "https://www.youtube.com/watch?v=InVrHhCjB9w"),
+    ("🌿 Stress Management Techniques", "https://www.youtube.com/watch?v=0fL-pn80s-c")
+]
+
+RECOVERY_TIPS = [
+    "🌱 **Talk to someone** – Share your feelings with a trusted friend or family member.",
+    "📝 **Write a journal** – Putting thoughts on paper can reduce anxiety.",
+    "🧘 **Practice deep breathing** – Try the breathing exercise in the sidebar.",
+    "🚶 **Take a walk** – Fresh air and sunlight boost mood.",
+    "🛌 **Prioritise sleep** – Rest is essential for mental health.",
+    "🍎 **Eat balanced meals** – Nutrition affects your mood.",
+    "🎯 **Set small goals** – Celebrate tiny achievements.",
+    "🙏 **Be kind to yourself** – You are doing your best."
+]
 
 # ---------- Session state ----------
 if "messages" not in st.session_state:
-    # Start with a welcome message and a random affirmation
     welcome = "Hello. How are you feeling today?"
     affirmation = random.choice(AFFIRMATIONS)
     st.session_state.messages = [
         {"role": "assistant", "content": f"{welcome}\n\n✨ *Daily affirmation:* {affirmation}"}
     ]
 if "history" not in st.session_state:
-    st.session_state.history = []   # (timestamp, sentiment, score)
+    st.session_state.history = []
+if "breathing" not in st.session_state:
+    st.session_state.breathing = False
 
-# ---------- Helper: download chat ----------
+# ---------- Helper: download link ----------
 def get_download_link():
     chat_text = ""
     for msg in st.session_state.messages:
@@ -52,11 +62,22 @@ def get_download_link():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return f'<a href="data:text/plain;base64,{b64}" download="mindmate_chat_{timestamp}.txt">📥 Download Chat History</a>'
 
+# ---------- Page config ----------
+st.set_page_config(page_title="MindMate – Mental Health Assistant", page_icon="🧠", layout="wide")
+
 # ---------- Sidebar ----------
 with st.sidebar:
-    st.title("🧠 MindMate")
+    st.image("https://img.icons8.com/color/96/000000/brain.png", width=80)
+    st.title("MindMate")
     
-    # Mood history (simple text)
+    st.markdown("### 🚨 **Indian Helplines**")
+    st.markdown("📞 iCall (TISS) : 9152987821 (10am-8pm)")
+    st.markdown("📞 Vandrevala : 1860-266-2345 (24x7)")
+    st.markdown("📞 NIMHANS : 080-46110007 (10am-6pm)")
+    st.markdown("📞 Fortis Stress Helpline : 08376804102")
+    st.markdown("🚨 Emergency : 112")
+    st.markdown("---")
+    
     st.markdown("### 📈 Your Mood History")
     if st.session_state.history:
         for ts, label, score in st.session_state.history[-10:]:
@@ -79,15 +100,32 @@ with st.sidebar:
         st.session_state.messages = [{"role": "assistant", "content": f"Conversation cleared. {random.choice(AFFIRMATIONS)}"}]
         st.rerun()
     
-    st.markdown("---")
-    st.markdown("### 🚨 Indian Helplines")
-    st.markdown("📞 iCall: 9152987821 (10am-8pm)")
-    st.markdown("📞 Vandrevala: 1860-266-2345 (24x7)")
-    st.markdown("🚨 Emergency: 112")
-    st.caption("Not a replacement for professional care.")
+    st.caption("⚠️ Not a replacement for professional care.")
+
+# ---------- Main area ----------
+# College header (above chat title)
+st.markdown("""
+<div style="text-align:center; background:#e8f0fe; padding:0.8rem; border-radius:10px; margin-bottom:0.5rem;">
+    <h4 style="margin:0;">🏛️ Dept. of Computer Science and Application</h4>
+    <p style="margin:0; font-size:1rem;">Govt. First Grade College for Women, Jamkhandi</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.title("💬 MindMate Chat")
+st.caption("I'm here to listen. You can type or use voice input (if supported).")
+
+# ---------- Recovery Resources (videos & tips) ----------
+with st.expander("📚 **Recovery Resources – Videos & Tips**", expanded=False):
+    st.subheader("🎥 Helpful Videos")
+    for title, url in RECOVERY_VIDEOS:
+        st.markdown(f"- [{title}]({url})")
+    st.subheader("💪 How to Recover from Mental Health Challenges")
+    for tip in RECOVERY_TIPS:
+        st.markdown(tip)
+    st.info("Recovery is a journey. Small, consistent steps make a big difference.")
 
 # ---------- Breathing exercise modal ----------
-if st.session_state.get("breathing", False):
+if st.session_state.breathing:
     st.markdown("### 🌬️ Box Breathing Guide")
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
@@ -104,10 +142,7 @@ if st.session_state.get("breathing", False):
             st.rerun()
     st.markdown("---")
 
-# ---------- Main chat ----------
-st.title("💬 MindMate Chat")
-st.caption("I'm here to listen. You can type or use voice input (if supported).")
-
+# ---------- Chat history display ----------
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -119,7 +154,7 @@ if prompt := st.chat_input("How are you feeling today?"):
     with st.chat_message("user"):
         st.write(prompt)
 
-    # Sentiment
+    # Sentiment analysis
     score = sia.polarity_scores(prompt)["compound"]
     if score >= 0.05:
         label = "positive"
@@ -131,20 +166,20 @@ if prompt := st.chat_input("How are you feeling today?"):
         label = "neutral"
         reply = "Tell me more – I'm here to listen."
 
-    # Crisis override
+    # Crisis detection
     crisis_words = ["suicide", "kill myself", "end my life", "want to die", "self harm", "no hope"]
     if any(w in prompt.lower() for w in crisis_words):
-        reply = "🚨 **I'm sorry you're feeling this way.**\n\nIndia helplines:\n📞 iCall: 9152987821\n📞 Vandrevala: 1860-266-2345\n🚨 Emergency: 112\n\nYou are not alone."
+        reply = "🚨 **I'm sorry you're feeling this way.**\n\nIndia helplines:\n📞 iCall: 9152987821\n📞 Vandrevala: 1860-266-2345\n📞 NIMHANS: 080-46110007\n🚨 Emergency: 112\n\nYou are not alone."
 
     # Save to history
     st.session_state.history.append((datetime.now(), label, score))
 
-    # Add bot response
+    # Bot response
     st.session_state.messages.append({"role": "assistant", "content": reply})
     with st.chat_message("assistant"):
         st.write(reply)
 
-    # Sidebar mood update
+    # Update sidebar mood indicator
     emoji = "😊" if label=="positive" else "😞" if label=="negative" else "😐"
     st.sidebar.info(f"Latest mood: {emoji} {label} ({score:.2f})")
 
