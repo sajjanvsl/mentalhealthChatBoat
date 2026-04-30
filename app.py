@@ -24,8 +24,8 @@ AFFIRMATIONS = [
 
 RECOVERY_VIDEOS = [
     ("🧘 Guided Meditation for Anxiety", "https://www.youtube.com/watch?v=ZToicYcHIOU"),
-    ("💪 Overcoming Depression – Practical Tips", "https://www.youtube.com/watch?v=3BQN8K3E5oE"),
-    ("🧠 How to Practice Self-Care", "https://www.youtube.com/watch?v=InVrHhCjB9w"),
+    ("💪 Overcoming Depression – Practical Tips", "https://www.youtube.com/watch?v=Y9A5wuTtblw"),
+    ("🧠 How to Practice Self-Care", "https://www.youtube.com/watch?v=5If1LFZ1CQA"),
     ("🌿 Stress Management Techniques", "https://www.youtube.com/watch?v=0fL-pn80s-c")
 ]
 
