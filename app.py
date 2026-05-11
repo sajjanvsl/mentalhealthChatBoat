@@ -5,10 +5,40 @@ from datetime import datetime
 import time
 import random
 import base64
+import re
 
 # ---------- Setup ----------
 nltk.download('vader_lexicon', quiet=True)
 sia = SentimentIntensityAnalyzer()
+
+# ---------- FAQ responses (trained data) ----------
+FAQ_PAIRS = [
+    {
+        "patterns": ["not feeling great", "not doing well", "feeling down", "bad day", "not great today"],
+        "response": "I'm sorry to hear you're not doing well today. It's not always easy, but can you tell me what has you feeling down? I'm here to listen."
+    },
+    {
+        "patterns": ["feel anxious", "feeling anxious", "anxiety", "i'm anxious"],
+        "response": "Anxiety can feel very overwhelming. Is your anxiety caused by an upcoming event, one of your relationships, or overthinking? Let's explore this together."
+    },
+    {
+        "patterns": ["overthinking", "overthink", "thinking too much", "can't stop thinking"],
+        "response": "When we feel stressed, our brains can run at 100 tabs open. When did you notice this pattern, and does it impact your daily routine? Let's try to challenge one of those thoughts."
+    },
+    {
+        "patterns": ["overwhelmed", "100 things", "too many things", "so much to do", "stressed with work"],
+        "response": "Damn, your brain's running at 100 tabs open, huh? 🤯 Ever tried closing some? Let's pick just ONE thing that feels urgent right now."
+    }
+]
+
+def match_faq(user_message):
+    """Check user message against FAQ patterns. Returns response or None."""
+    lower_msg = user_message.lower()
+    for faq in FAQ_PAIRS:
+        for pattern in faq["patterns"]:
+            if pattern in lower_msg:
+                return faq["response"]
+    return None
 
 # ---------- Data ----------
 AFFIRMATIONS = [
@@ -24,8 +54,8 @@ AFFIRMATIONS = [
 
 RECOVERY_VIDEOS = [
     ("🧘 Guided Meditation for Anxiety", "https://www.youtube.com/watch?v=ZToicYcHIOU"),
-    ("💪 Overcoming Depression – Practical Tips", "https://www.youtube.com/watch?v=Y9A5wuTtblw"),
-    ("🧠 How to Practice Self-Care", "https://www.youtube.com/watch?v=5If1LFZ1CQA"),
+    ("💪 Overcoming Depression – Practical Tips", "https://www.youtube.com/watch?v=3BQN8K3E5oE"),
+    ("🧠 How to Practice Self-Care", "https://www.youtube.com/watch?v=InVrHhCjB9w"),
     ("🌿 Stress Management Techniques", "https://www.youtube.com/watch?v=0fL-pn80s-c")
 ]
 
@@ -114,7 +144,7 @@ st.markdown("""
 st.title("💬 MindMate Chat")
 st.caption("I'm here to listen. You can type or use voice input (if supported).")
 
-# ---------- Recovery Resources (videos & tips) ----------
+# ---------- Recovery Resources ----------
 with st.expander("📚 **Recovery Resources – Videos & Tips**", expanded=False):
     st.subheader("🎥 Helpful Videos")
     for title, url in RECOVERY_VIDEOS:
@@ -147,6 +177,30 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
+# ---------- Core response logic with FAQ priority ----------
+def get_bot_response(user_message):
+    # 1. Crisis detection (highest priority)
+    crisis_words = ["suicide", "kill myself", "end my life", "want to die", "self harm", "no hope"]
+    if any(w in user_message.lower() for w in crisis_words):
+        return ("🚨 **I'm sorry you're feeling this way.**\n\nIndia helplines:\n"
+                "📞 iCall: 9152987821\n📞 Vandrevala: 1860-266-2345\n"
+                "📞 NIMHANS: 080-46110007\n🚨 Emergency: 112\n\nYou are not alone.")
+    
+    # 2. FAQ matching (trained responses)
+    faq_response = match_faq(user_message)
+    if faq_response:
+        return faq_response
+    
+    # 3. Sentiment-based fallback
+    score = sia.polarity_scores(user_message)["compound"]
+    if score >= 0.05:
+        return "That's great! Keep nurturing those positive feelings."
+    elif score <= -0.05:
+        return ("I hear you're going through a tough time. Would you like to share more? "
+                "Or call iCall: 9152987821.")
+    else:
+        return "Tell me more – I'm here to listen."
+
 # ---------- User input ----------
 if prompt := st.chat_input("How are you feeling today?"):
     # Add user message
@@ -154,27 +208,21 @@ if prompt := st.chat_input("How are you feeling today?"):
     with st.chat_message("user"):
         st.write(prompt)
 
-    # Sentiment analysis
+    # Get bot response using FAQ + sentiment
+    reply = get_bot_response(prompt)
+    
+    # Sentiment for logging (still needed for mood history)
     score = sia.polarity_scores(prompt)["compound"]
     if score >= 0.05:
         label = "positive"
-        reply = "That's great! Keep nurturing those positive feelings."
     elif score <= -0.05:
         label = "negative"
-        reply = "I hear you're going through a tough time. Would you like to share more? Or call iCall: 9152987821."
     else:
         label = "neutral"
-        reply = "Tell me more – I'm here to listen."
-
-    # Crisis detection
-    crisis_words = ["suicide", "kill myself", "end my life", "want to die", "self harm", "no hope"]
-    if any(w in prompt.lower() for w in crisis_words):
-        reply = "🚨 **I'm sorry you're feeling this way.**\n\nIndia helplines:\n📞 iCall: 9152987821\n📞 Vandrevala: 1860-266-2345\n📞 NIMHANS: 080-46110007\n🚨 Emergency: 112\n\nYou are not alone."
-
-    # Save to history
+    
     st.session_state.history.append((datetime.now(), label, score))
 
-    # Bot response
+    # Add bot response
     st.session_state.messages.append({"role": "assistant", "content": reply})
     with st.chat_message("assistant"):
         st.write(reply)
